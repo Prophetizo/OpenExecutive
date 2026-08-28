@@ -23,6 +23,7 @@ set -eu
 
 AUTH_MODE="${GWORKSPACE_AUTH_MODE:-oauth}"
 TOOL_TIER="${WORKSPACE_MCP_TOOL_TIER:-complete}"
+TOOLS="${WORKSPACE_MCP_TOOLS:-}"
 
 # CRITICAL (co-location): in stdio single-user mode workspace-mcp starts a
 # "minimal OAuth server" on WORKSPACE_MCP_PORT, which DEFAULTS TO 8000 — the same
@@ -48,6 +49,29 @@ fi
 # Invoke the binary from its isolated venv (docker/Dockerfile) so its fastmcp/
 # pydantic deps don't collide with the API's system env.
 set -- /opt/workspace-mcp/bin/workspace-mcp --tool-tier "$TOOL_TIER"
+
+# Optionally narrow the registered Google services. The complete tier controls
+# tool depth within each selected service; it does not have to expose the whole
+# Workspace suite. Keep the default empty for backwards compatibility.
+if [ -n "$TOOLS" ]; then
+    set -- "$@" --tools
+    old_ifs="$IFS"
+    IFS=','
+    set -f
+    for tool in $TOOLS; do
+        case "$tool" in
+            appscript|calendar|chat|contacts|docs|drive|forms|gmail|search|sheets|slides|tasks)
+                set -- "$@" "$tool"
+                ;;
+            *)
+                echo "Unknown WORKSPACE_MCP_TOOLS service '$tool'" >&2
+                exit 64
+                ;;
+        esac
+    done
+    set +f
+    IFS="$old_ifs"
+fi
 
 case "$AUTH_MODE" in
     oauth)

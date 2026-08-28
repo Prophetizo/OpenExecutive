@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 from email.utils import parseaddr
 from typing import TYPE_CHECKING, Any
@@ -33,6 +34,29 @@ POLL_INTERVAL_SECONDS = get_settings().email_poll_interval_seconds
 _processed_ids: set[str] = set()
 
 _SKIP_SENDERS = ("noreply", "no-reply", "mailer-daemon", "postmaster", "do-not-reply")
+
+
+def _workspace_auth_configured() -> bool:
+    """Return whether the co-located Workspace server has usable auth inputs.
+
+    The MCP tool catalog is available before Google authorization, so tool
+    discovery alone cannot tell the background poller that Gmail is ready. Do
+    not trigger an OAuth failure every minute while an operator is still
+    completing setup.
+    """
+    mode = os.environ.get("GWORKSPACE_AUTH_MODE", "oauth").strip().lower()
+    if mode == "oauth":
+        return bool(
+            os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+            and os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+        )
+    if mode == "service_account":
+        has_key = bool(
+            os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY_JSON")
+            or os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY_FILE")
+        )
+        return has_key and bool(os.environ.get("USER_GOOGLE_EMAIL"))
+    return False
 
 
 # Headers that can steer where a reply is sent. Stripped from the raw email
@@ -458,6 +482,9 @@ async def _discover_gmail_tools(gateway: MCPGateway) -> None:
 
 async def run_email_poller(gateway: MCPGateway) -> None:
     """Async polling loop. Run as a background task; cancelled on shutdown."""
+    if not _workspace_auth_configured():
+        logger.info("disabled — Google Workspace authentication is not configured")
+        return
     logger.info("started (interval=%ds)", POLL_INTERVAL_SECONDS)
     while True:
         try:

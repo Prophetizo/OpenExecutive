@@ -176,6 +176,20 @@ are disabled by default and must target a namespace explicitly authorized with
 See [docs/gitlab_mcp_setup.md](docs/gitlab_mcp_setup.md) for the group settings,
 OAuth bootstrap, Docker volume seeding, verification, and recovery runbook.
 
+## Google Workspace MCP
+
+Open Executive can run Google Workspace MCP beside GitLab in the same gateway,
+providing Gmail, Calendar, and Drive tools without a separate service. The
+combined deployment template is
+[`packages/core/mcp_servers.gitlab-workspace.json`](packages/core/mcp_servers.gitlab-workspace.json).
+Outbound email, calendar invitations, and Drive sharing remain restricted to
+the People roster, destructive email/file operations are excluded, and
+`WORKSPACE_MCP_TOOLS` limits which Google services are registered.
+
+See the Google Workspace section of
+[`docs/deployment.md`](docs/deployment.md#google-workspace-co-located-in-the-api)
+for OAuth and service-account setup.
+
 ## Onboarding Your Company
 
 The first time you visit the app, you'll be guided through a wizard to set up your company profile:
