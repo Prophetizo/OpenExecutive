@@ -250,6 +250,11 @@ from the `google_workspace` entry in `/data/company/mcp_servers.json`. Its OAuth
 token (if any) persists at `/data/google_credentials` on the API's existing
 `executive_data` volume. No second Fly app, deploy token, or deploy job.
 
+`WORKSPACE_MCP_TOOLS` optionally limits the registered services as a
+comma-separated list. MorphIQ's initial deployment uses
+`gmail,calendar,drive`; the complete tier then exposes the full supported tool
+depth only within those three services.
+
 ### Configure per install
 
 Everything is set on the **API** app. Pick one auth mode — `GWORKSPACE_AUTH_MODE`
@@ -296,6 +301,14 @@ The live gateway config is on the API volume at `/data/company/mcp_servers.json`
 (gitignored). The `google_workspace` entry must point `command` at the launcher
 (see [packages/core/mcp_servers.json.example](../packages/core/mcp_servers.json.example)
 for the exact block). After setting secrets or editing the config:
+
+For an install that enables both GitLab and Google Workspace, seed the
+restricted combined template:
+
+```
+docker cp packages/core/mcp_servers.gitlab-workspace.json \
+  openexecutive-api-1:/data/company/mcp_servers.json
+```
 
 ```
 flyctl apps restart openexec-api-dev   # gateway reads the config + secrets at startup

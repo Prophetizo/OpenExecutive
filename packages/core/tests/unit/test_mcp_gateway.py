@@ -544,3 +544,25 @@ def test_empty_content_returns_fallback(tmp_path: Path) -> None:
 
     result = asyncio.run(_run())
     assert json.loads(result) == {"tools": []}
+
+
+def test_gitlab_workspace_template_keeps_both_servers_restricted() -> None:
+    template = Path(__file__).parents[2] / "mcp_servers.gitlab-workspace.json"
+    config = json.loads(template.read_text())
+
+    assert set(config["mcpServers"]) == {"gitlab", "google_workspace"}
+    assert config["mcpServers"]["google_workspace"]["command"] == (
+        "/usr/local/bin/workspace-mcp-launch.sh"
+    )
+    assert config["mcpServers"]["google_workspace"]["env"]["WORKSPACE_MCP_TOOLS"] == (
+        "$WORKSPACE_MCP_TOOLS"
+    )
+
+    access = config["filters"]["access_control"]
+    assert set(access["allow_servers"]) == {"gitlab", "google_workspace"}
+    assert "*__delete_*" in access["deny_patterns"]
+    assert "*trash*" in access["deny_patterns"]
+    assert config["filters"]["load_control"] == {
+        "deny_url_patterns": ["*"],
+        "allow_url_patterns": [],
+    }
